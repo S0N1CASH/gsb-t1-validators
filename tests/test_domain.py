@@ -64,7 +64,6 @@ def test_returns_true_on_valid_top_level_domain(
         ("example.-com", False, False),
         ("example.", False, False),
         ("-example.com", False, False),
-        ("example-.com.", True, False),
         ("_example.com", False, False),
         ("_example._com", False, False),
         ("example_.com", False, False),

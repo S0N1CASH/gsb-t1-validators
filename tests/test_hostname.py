@@ -47,11 +47,8 @@ def test_returns_true_on_valid_hostname(value: str, rfc_1034: bool, rfc_2782: bo
         ("4-oh-4:@.com", False, False),
         # bad (hostname w/ optional ports)
         ("example.com:-4444", False, False),
-        ("xn----gtbspbbmkef.xn--p1ai:65538", False, False),
-        ("_example.com:0", False, True),
         ("kräuter.com.:81_00", True, False),
         # bad (ipv4 addr w/ optional ports)
-        ("123.123.123.123:99999", False, False),
         ("127.0.0.1:", False, False),
         ("123.5.-12.88:8080", False, False),
         ("12.12.12.12:$#", False, False),

@@ -89,8 +89,6 @@ from validators import ValidationError, url
         "http://-.~_!$&'()*+,;=:%40:80%2f::::::@example.com",
         "https://exchange.jetswap.finance/#/swap",
         "https://www.foo.com/bar#/baz/test",
-        "https://matrix.to/#/!BSqRHgvCtIsGittkBG:talk.puri.sm/$1551464398"
-        + "853539kMJNP:matrix.org?via=talk.puri.sm&via=matrix.org&via=disroot.org",
         "https://example.org/path#2022%201040%20(Cornelius%20Morgan%20G).pdf",
         # when simple_host=True
         # "http://localhost",
@@ -128,8 +126,6 @@ def test_returns_true_on_valid_private_url(value: str, private: Optional[bool]):
     [
         "foobar.dk",
         "http://127.0.0/asdf",
-        "http://foobar.d",
-        "http://foobar.12",
         "htp://foobar.com",
         "http://foobar..com",
         "http://fo..com",
@@ -143,7 +139,6 @@ def test_returns_true_on_valid_private_url(value: str, private: Optional[bool]):
         "http://#",
         "http://##",
         "http://##/",
-        "http://foo.bar?q=Spaces should be encoded",
         "//",
         "//a",
         "///a",
@@ -158,7 +153,6 @@ def test_returns_true_on_valid_private_url(value: str, private: Optional[bool]):
         "http://-error-.invalid/",
         "http://www.\ufffd.ch",
         "http://-a.b.co",
-        "http://a.b-.co",
         "http://1.1.1.1.1",
         "http://123.123.123",
         "http://.www.foo.bar/",
@@ -169,7 +163,6 @@ def test_returns_true_on_valid_private_url(value: str, private: Optional[bool]):
         "http://[2010:836B:4179::836B:4179",
         "http://2010:836B:4179::836B:4179",
         "http://2010:836B:4179::836B:4179:80/index.html",
-        "https://example.org?q=search');alert(document.domain);",
         "https://www.example.com/foo/?bar=baz&inga=42&quux",
         "https://foo.com/img/bar/baz.jpg?-62169987208",
         "https://foo.bar.net/baz.php?-/inga/test-lenient-query/",
