@@ -9,16 +9,38 @@ from .utils import validator
 @lru_cache
 def _port_regex():
     """Port validation regex."""
-    raise NotImplementedError()
+    return re.compile(r"^[1-9][0-9]{0,4}$")
 
 @lru_cache
 def _simple_hostname_regex():
     """Simple hostname validation regex."""
-    raise NotImplementedError()
+    return re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
+
+def _is_valid_port(value: str):
+    """Return whether `value` is a valid port number."""
+    if not _port_regex().match(value):
+        return False
+    return int(value) <= 65535
 
 def _port_validator(value: str):
     """Returns host segment if port is valid."""
-    raise NotImplementedError()
+    if value.startswith("["):
+        closing = value.find("]")
+        if closing == -1:
+            return None
+        host = value[: closing + 1]
+        remainder = value[closing + 1 :]
+        if not remainder:
+            return host
+        if not remainder.startswith(":") or not _is_valid_port(remainder[1:]):
+            return None
+        return host
+    if ":" in value:
+        host, _, port = value.rpartition(":")
+        if not _is_valid_port(port):
+            return None
+        return host
+    return value
 
 @validator
 def hostname(value: str, /, *, skip_ipv6_addr: bool=False, skip_ipv4_addr: bool=False, may_have_port: bool=True, maybe_simple: bool=True, consider_tld: bool=False, private: Optional[bool]=None, rfc_1034: bool=False, rfc_2782: bool=False):
@@ -72,4 +94,33 @@ def hostname(value: str, /, *, skip_ipv6_addr: bool=False, skip_ipv4_addr: bool=
         (Literal[True]): If `value` is a valid hostname.
         (ValidationError): If `value` is an invalid hostname.
     """
-    raise NotImplementedError()
+    if not value or not isinstance(value, str):
+        return False
+
+    if not skip_ipv6_addr and ":" in value and not value.startswith("["):
+        # an unbracketed IPv6 address does not carry a port number
+        if ipv6(value):
+            return True
+
+    host = _port_validator(value) if may_have_port else value
+    if host is None or not host:
+        return False
+
+    if host.startswith("[") and host.endswith("]"):
+        return False if skip_ipv6_addr else bool(ipv6(host[1:-1]))
+
+    if ":" in host:
+        return False if skip_ipv6_addr else bool(ipv6(host))
+
+    if not skip_ipv6_addr and ipv6(host):
+        return True
+
+    if not skip_ipv4_addr and ipv4(host, private=private):
+        return True
+
+    if maybe_simple and _simple_hostname_regex().match(host):
+        return True
+
+    return bool(
+        domain(host, consider_tld=consider_tld, rfc_1034=rfc_1034, rfc_2782=rfc_2782)
+    )
