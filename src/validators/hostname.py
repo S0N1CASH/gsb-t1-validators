@@ -9,16 +9,24 @@ from .utils import validator
 @lru_cache
 def _port_regex():
     """Port validation regex."""
-    raise NotImplementedError()
+    return re.compile(
+        r"^(?:6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}"
+        r"|[1-5][0-9]{4}|[1-9][0-9]{0,3})$"
+    )
 
 @lru_cache
 def _simple_hostname_regex():
     """Simple hostname validation regex."""
-    raise NotImplementedError()
+    return re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
 
 def _port_validator(value: str):
     """Returns host segment if port is valid."""
-    raise NotImplementedError()
+    if value.count(":") != 1:
+        return False
+    host, _, port = value.partition(":")
+    if _port_regex().match(port):
+        return host
+    return False
 
 @validator
 def hostname(value: str, /, *, skip_ipv6_addr: bool=False, skip_ipv4_addr: bool=False, may_have_port: bool=True, maybe_simple: bool=True, consider_tld: bool=False, private: Optional[bool]=None, rfc_1034: bool=False, rfc_2782: bool=False):
@@ -72,4 +80,49 @@ def hostname(value: str, /, *, skip_ipv6_addr: bool=False, skip_ipv4_addr: bool=
         (Literal[True]): If `value` is a valid hostname.
         (ValidationError): If `value` is an invalid hostname.
     """
-    raise NotImplementedError()
+    if not value:
+        return False
+
+    # bracketed IPv6 address, optionally followed by a port
+    if value.startswith("["):
+        if skip_ipv6_addr:
+            return False
+        closing = value.find("]")
+        if closing == -1:
+            return False
+        address = value[1:closing]
+        remainder = value[closing + 1 :]
+        if remainder:
+            if not (may_have_port and remainder.startswith(":")):
+                return False
+            if not _port_regex().match(remainder[1:]):
+                return False
+        return bool(ipv6(address, cidr=False))
+
+    # bare IPv6 address
+    if value.count(":") >= 2:
+        if skip_ipv6_addr:
+            return False
+        return bool(ipv6(value, cidr=False))
+
+    # host, optionally followed by a port
+    host = value
+    if ":" in value:
+        if not may_have_port:
+            return False
+        host = _port_validator(value)
+        if not host:
+            return False
+
+    if not host:
+        return False
+
+    if not skip_ipv4_addr and ipv4(host, cidr=False, private=private):
+        return True
+
+    if maybe_simple and _simple_hostname_regex().match(host):
+        return True
+
+    return bool(
+        domain(host, consider_tld=consider_tld, rfc_1034=rfc_1034, rfc_2782=rfc_2782)
+    )
